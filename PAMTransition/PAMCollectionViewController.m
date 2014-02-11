@@ -103,28 +103,38 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
         case UIGestureRecognizerStateBegan:
         {
             NSLog(@"begin scale=%f",gesture.scale);
+            // 拡大なのか縮小なのかを記録しておく。
+            // これをしておかないと、拡大で開始して途中で縮小したりするとおかしな事になる。
             self.zoomingStatus = gesture.pam_zoomStatus;
+
+            // Transitionする先のLayoutを用意
             NSUInteger nextItemCount = [self nextHoraizontalItemCount];
             UICollectionViewLayout *nextLayout=[UICollectionViewFlowLayout layoutWithHorizontalItemCount:nextItemCount];
+
+            // Transitionの開始
             [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
                                                                        completion:^(BOOL completed, BOOL finish) {
                                                                            NSLog( @"completion");
+                                                                           // Transitionの完了時にジェスチャーを止めるので、ここで再開
                                                                            [self enableGesture];
                                                                        }];
         }
             break;
         case UIGestureRecognizerStateChanged:
+            // Transitionの進捗(progress)を0.0〜1.0で更新
             self.transitionLayout.transitionProgress = [gesture pam_transitionProgressWithZoomStatus:self.zoomingStatus];
             NSLog( @"transitionProgress=%f",self.transitionLayout.transitionProgress);
             break;
         case UIGestureRecognizerStateEnded:
-            [self disableGesture];
+            // Transitionを完了
             if( self.transitionLayout.transitionProgress > kPAMProgressThreshold ){
                 [self.collectionView finishInteractiveTransition];
                 self.currentHoraizontalItemCount = [self nextHoraizontalItemCount];
             }else{
                 [self.collectionView cancelInteractiveTransition];
             }
+            // 最後のアニメーションが終わるまでジェスチャーを停止
+            [self disableGesture];
             break;
         default:
             break;

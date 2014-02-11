@@ -102,9 +102,14 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
         case UIGestureRecognizerStateEnded:
             [self disableGesture];
             if( self.transitionLayout.transitionProgress > kPAMProgressThreshold ){
+                
+                self.transitionLayout.transitionProgress=0.95;
+                [self.transitionLayout invalidateLayout];
                 [self.collectionView finishInteractiveTransition];
                 self.currentHoraizontalItemCount = [self nextHoraizontalItemCount];
             }else{
+                self.transitionLayout.transitionProgress=0.05;
+                [self.transitionLayout invalidateLayout];
                 [self.collectionView cancelInteractiveTransition];
             }
             break;

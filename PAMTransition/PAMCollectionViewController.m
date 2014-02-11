@@ -8,9 +8,46 @@
 
 #import "PAMCollectionViewController.h"
 
+typedef enum PAMPinchGestureZoomStatus:NSUInteger{
+    PAMPinchGestureZoomStatusZoomIn,  // 拡大
+    PAMPinchGestureZoomStatusZoomOut, // 縮小
+}PAMPinchGestureZoomStatus;
+
+
+@interface UIPinchGestureRecognizer(PAMUtil)
+@property(readonly)PAMPinchGestureZoomStatus pam_zoomStatus;
+-(CGFloat)pam_transitionProgressWithZoomStatus:(PAMPinchGestureZoomStatus)zoomStatus;
+@end
+
+@implementation UIPinchGestureRecognizer(PAMUtil)
+-(PAMPinchGestureZoomStatus)pam_zoomStatus
+{
+    return self.scale > 1.0 ? PAMPinchGestureZoomStatusZoomIn : PAMPinchGestureZoomStatusZoomOut;
+}
+-(CGFloat)pam_transitionProgressWithZoomStatus:(PAMPinchGestureZoomStatus)zoomStatus
+{
+    CGFloat progress = 0.0;
+    switch (zoomStatus) {
+        case PAMPinchGestureZoomStatusZoomIn:
+            // 拡大中 scaleの1.0〜2.0をprogressの0.0〜1.0にマッピング
+            progress = self.scale - 1.0;
+            break;
+        case PAMPinchGestureZoomStatusZoomOut:
+            // 縮小中 scaleの1.0〜0.5をprogressの0.0〜1.0にマッピング
+            progress = 2.0 - 2.0*self.scale;
+            break;
+    }
+    progress = progress > 1.0 ? 1.0 : progress;
+    progress = progress < 0.0 ? 0.0 : progress;
+    return progress;
+}
+@end
+
 @interface PAMCollectionViewController ()
-@property(nonatomic, readonly)UICollectionViewTransitionLayout *transitionLayout;
-@property(nonatomic)NSUInteger horaizontalCellCount;
+@property(nonatomic,readonly)UICollectionViewTransitionLayout *transitionLayout;
+@property(nonatomic)NSUInteger currentHoraizontalItemCount;
+@property(nonatomic)PAMPinchGestureZoomStatus zoomingStatus;
+@property(nonatomic)UIPinchGestureRecognizer *pinchGesture;
 @end
 
 @implementation PAMCollectionViewController
@@ -29,13 +66,10 @@
     [super viewDidLoad];
 	// Do any additional setup after loading the view.
     
+    self.currentHoraizontalItemCount=3;
     self.collectionView.dataSource=self;
-    self.horaizontalCellCount=3;
-    self.collectionView.collectionViewLayout = [self layoutWithHorizontalCount:self.horaizontalCellCount];
-    
-    UIPinchGestureRecognizer *gesture = [UIPinchGestureRecognizer new];
-    [gesture addTarget:self action:@selector(pinchAction:)];
-    [self.collectionView addGestureRecognizer:gesture];
+    self.collectionView.collectionViewLayout = [self layoutWithHorizontalCount:self.currentHoraizontalItemCount];
+    [self enableGesture];
 }
 
 - (void)didReceiveMemoryWarning
@@ -48,50 +82,33 @@
 {
     switch(gesture.state){
         case UIGestureRecognizerStateBegan:
+            NSLog(@"begin scale=%f",gesture.scale);
             break;
+            
         case UIGestureRecognizerStateChanged:
             if( self.transitionLayout == nil ){
-                if (gesture.scale > 1.0) {
-                    // 拡大
-                    if( self.horaizontalCellCount == 1 ){
-                        // これ以上拡大は出来ない
-                    }else{
-                        NSUInteger nextCount = self.horaizontalCellCount-1;
-                        UICollectionViewLayout *nextLayout = [self layoutWithHorizontalCount:nextCount];
-                        [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
-                                                                                   completion:nil];
-                    }
-                }else{
-                    // 縮小
-                    NSUInteger nextCount = self.horaizontalCellCount+1;
-                    UICollectionViewLayout *nextLayout = [self layoutWithHorizontalCount:nextCount];
-                    [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
-                                                                               completion:nil];
-                }
+//            if ([self isInteractiveTransitioning]){
+                // まだTransitionが開始されていない
+                self.zoomingStatus = gesture.pam_zoomStatus;
+                NSUInteger nextCellCount = [self nextHoraizontalItemCountWithZoomStatus:self.zoomingStatus];
+                UICollectionViewLayout *nextLayout=[self layoutWithHorizontalCount:nextCellCount];
+                
+                [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
+                                                                           completion:^(BOOL completed, BOOL finish) {
+                                                                               NSLog( @"completion");
+                                                                               [self enableGesture];
+                                                                           }];
             }
-            if( gesture.scale > 1.0 ){
-                // 拡大中 scaleの1.0〜2.0をprogressの0.0〜1.0にマッピング
-                CGFloat progress = gesture.scale > 2.0 ? 2.0:gesture.scale;
-                self.transitionLayout.transitionProgress = progress - 1.0;
-            }else{
-                // 縮小中 scaleの1.0〜0.5をprogressの0.0〜1.0にマッピング
-                CGFloat progress = (1.0-gesture.scale)*2.0;
-                if( progress > 1.0 ){
-                    progress = 1.0;
-                }
-                self.transitionLayout.transitionProgress=progress;
-            }
+            self.transitionLayout.transitionProgress = [gesture pam_transitionProgressWithZoomStatus:self.zoomingStatus];
             NSLog( @"transitionProgress=%f",self.transitionLayout.transitionProgress);
             break;
         case UIGestureRecognizerStateEnded:
             if( self.transitionLayout != nil ){
-                if ((gesture.scale > 2.0) || (gesture.scale < 0.5)) {
+//            if ([self isInteractiveTransitioning]){
+                [self disableGesture];
+                if( self.transitionLayout.transitionProgress > 0.5 ){
                     [self.collectionView finishInteractiveTransition];
-                    if( gesture.scale > 2.0 ){
-                        self.horaizontalCellCount = self.horaizontalCellCount-1;
-                    }else{
-                        self.horaizontalCellCount = self.horaizontalCellCount+1;
-                    }
+                    self.currentHoraizontalItemCount = [self nextHoraizontalItemCountWithZoomStatus:self.zoomingStatus];
                 }else{
                     [self.collectionView cancelInteractiveTransition];
                 }
@@ -103,6 +120,36 @@
 }
 
 #pragma mark - util.
+-(NSUInteger)nextHoraizontalItemCountWithZoomStatus:(PAMPinchGestureZoomStatus)zoomStatus
+{
+    NSUInteger nextHoraizontalItemCount;
+    switch (self.zoomingStatus) {
+        case PAMPinchGestureZoomStatusZoomIn:
+            nextHoraizontalItemCount = self.currentHoraizontalItemCount-1;
+            break;
+        case PAMPinchGestureZoomStatusZoomOut:
+            nextHoraizontalItemCount = self.currentHoraizontalItemCount+1;
+            break;
+    }
+    return nextHoraizontalItemCount;
+}
+
+-(void)enableGesture
+{
+    if( self.pinchGesture == nil ){
+        self.pinchGesture = [UIPinchGestureRecognizer new];
+        [self.pinchGesture addTarget:self action:@selector(pinchAction:)];
+    }
+    [self.collectionView addGestureRecognizer:self.pinchGesture];
+}
+-(void)disableGesture
+{
+    [self.collectionView removeGestureRecognizer:self.pinchGesture];
+}
+-(BOOL)isInteractiveTransitioning
+{
+    return (self.transitionLayout!=nil);
+}
 -(UICollectionViewTransitionLayout *)transitionLayout
 {
     id layout = self.collectionView.collectionViewLayout;
@@ -112,13 +159,11 @@
         return nil;
     }
 }
-
--(NSUInteger)horaizontalCountFromLayout:(UICollectionViewFlowLayout *)flowLayout
-{
-    return 310/flowLayout.itemSize.width;
-}
 -(UICollectionViewLayout *)layoutWithHorizontalCount:(NSUInteger) count
 {
+    if( count == 0 ){
+        count=1;
+    }
     UICollectionViewFlowLayout *layout = [UICollectionViewFlowLayout new];
     layout.itemSize=CGSizeMake(310/count,310/count);
     layout.minimumInteritemSpacing=1.0;

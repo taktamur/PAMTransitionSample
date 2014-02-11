@@ -2,12 +2,14 @@
 //  PAMCollectionViewController.m
 //  PAMTransition
 //
-//  Created by tak on 2014/02/11.
-//  Copyright (c) 2014年 taktamur. All rights reserved.
 //
 
 #import "PAMCollectionViewController.h"
 
+
+#pragma mark - UIPinchGestureRecognizer+PAMUtil
+// PinchGestureをカテゴリ拡張
+// このジェスチャーが拡大してるのか縮小しているのか
 typedef enum PAMPinchGestureZoomStatus:NSUInteger{
     PAMPinchGestureZoomStatusZoomIn,  // 拡大
     PAMPinchGestureZoomStatusZoomOut, // 縮小
@@ -15,7 +17,10 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
 
 
 @interface UIPinchGestureRecognizer(PAMUtil)
+// 拡大中か縮小中か
 @property(readonly)PAMPinchGestureZoomStatus pam_zoomStatus;
+// transitionLayout.transitionProgress に値をそのまま突っ込めるように、
+// 拡大中縮小中にあわせて、scale(0.5〜2.0)をprogress(0.0〜1.0)に変換する
 -(CGFloat)pam_transitionProgressWithZoomStatus:(PAMPinchGestureZoomStatus)zoomStatus;
 @end
 
@@ -37,16 +42,35 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
             progress = 2.0 - 2.0*self.scale;
             break;
     }
+    // はみ出してるところを丸める
     progress = progress > 1.0 ? 1.0 : progress;
     progress = progress < 0.0 ? 0.0 : progress;
     return progress;
 }
 @end
 
+#pragma mark - UICollectionViewFlowLayout+PAMUtil
+@interface UICollectionViewFlowLayout(PAMUtil)
++(UICollectionViewFlowLayout *)layoutWithHorizontalItemCount:(NSUInteger)count;
+@end;
+@implementation UICollectionViewFlowLayout(PAMUtil)
++(UICollectionViewFlowLayout *)layoutWithHorizontalItemCount:(NSUInteger)count
+{
+    NSAssert(count!=0, @"zero count");
+    UICollectionViewFlowLayout *layout = [UICollectionViewFlowLayout new];
+    layout.itemSize=CGSizeMake(310/count,310/count);
+    layout.minimumInteritemSpacing=1.0;
+    layout.minimumLineSpacing=1.0;
+    return layout;
+
+}
+@end
+
+#pragma mark - PAMCollectionViewController
 @interface PAMCollectionViewController ()
 @property(nonatomic,readonly)UICollectionViewTransitionLayout *transitionLayout;
-@property(nonatomic)NSUInteger currentHoraizontalItemCount;
-@property(nonatomic)PAMPinchGestureZoomStatus zoomingStatus; // スクロールする方向を覚えておかないと、１つのジェスチャーで拡大→縮小を繰り返すとおかしな挙動になる。
+@property(nonatomic)NSUInteger currentHoraizontalItemCount; // 今現在の横方向のItem数
+@property(nonatomic)PAMPinchGestureZoomStatus zoomingStatus; // 今現在ズームしている方向
 @property(nonatomic)UIPinchGestureRecognizer *pinchGesture;
 @end
 
@@ -68,14 +92,8 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
     
     self.currentHoraizontalItemCount=3;
     self.collectionView.dataSource=self;
-    self.collectionView.collectionViewLayout = [self layoutWithHorizontalCount:self.currentHoraizontalItemCount];
+    self.collectionView.collectionViewLayout = [UICollectionViewFlowLayout layoutWithHorizontalItemCount:self.currentHoraizontalItemCount];
     [self enableGesture];
-}
-
-- (void)didReceiveMemoryWarning
-{
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
 }
 
 #define kPAMProgressThreshold 0.5
@@ -86,8 +104,8 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
         {
             NSLog(@"begin scale=%f",gesture.scale);
             self.zoomingStatus = gesture.pam_zoomStatus;
-            NSUInteger nextCellCount = [self nextHoraizontalItemCount];
-            UICollectionViewLayout *nextLayout=[self layoutWithHorizontalCount:nextCellCount];
+            NSUInteger nextItemCount = [self nextHoraizontalItemCount];
+            UICollectionViewLayout *nextLayout=[UICollectionViewFlowLayout layoutWithHorizontalItemCount:nextItemCount];
             [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
                                                                        completion:^(BOOL completed, BOOL finish) {
                                                                            NSLog( @"completion");
@@ -102,14 +120,9 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
         case UIGestureRecognizerStateEnded:
             [self disableGesture];
             if( self.transitionLayout.transitionProgress > kPAMProgressThreshold ){
-                
-                self.transitionLayout.transitionProgress=0.95;
-                [self.transitionLayout invalidateLayout];
                 [self.collectionView finishInteractiveTransition];
                 self.currentHoraizontalItemCount = [self nextHoraizontalItemCount];
             }else{
-                self.transitionLayout.transitionProgress=0.05;
-                [self.transitionLayout invalidateLayout];
                 [self.collectionView cancelInteractiveTransition];
             }
             break;
@@ -117,23 +130,7 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
             break;
     }
 }
-
-#pragma mark - util.
--(NSUInteger)nextHoraizontalItemCount
-{
-    NSUInteger nextHoraizontalItemCount;
-    switch (self.zoomingStatus) {
-        case PAMPinchGestureZoomStatusZoomIn:
-            nextHoraizontalItemCount = self.currentHoraizontalItemCount-1;
-            nextHoraizontalItemCount = nextHoraizontalItemCount==0 ? 1 : nextHoraizontalItemCount;
-            break;
-        case PAMPinchGestureZoomStatusZoomOut:
-            nextHoraizontalItemCount = self.currentHoraizontalItemCount+1;
-            break;
-    }
-    return nextHoraizontalItemCount;
-}
-
+#pragma mark - Gesture controll.
 -(void)enableGesture
 {
     if( self.pinchGesture == nil ){
@@ -146,10 +143,25 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
 {
     [self.collectionView removeGestureRecognizer:self.pinchGesture];
 }
--(BOOL)isInteractiveTransitioning
+
+
+#pragma mark - util.
+-(NSUInteger)nextHoraizontalItemCount
 {
-    return (self.transitionLayout!=nil);
+    NSUInteger nextCount;
+    switch (self.zoomingStatus) {
+        case PAMPinchGestureZoomStatusZoomIn:
+            nextCount = self.currentHoraizontalItemCount-1;
+            nextCount = nextCount==0 ? 1 : nextCount;
+            break;
+        case PAMPinchGestureZoomStatusZoomOut:
+            nextCount = self.currentHoraizontalItemCount+1;
+            break;
+    }
+    return nextCount;
 }
+
+
 -(UICollectionViewTransitionLayout *)transitionLayout
 {
     id layout = self.collectionView.collectionViewLayout;
@@ -159,15 +171,6 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
         return nil;
     }
 }
--(UICollectionViewLayout *)layoutWithHorizontalCount:(NSUInteger) count
-{
-    NSAssert(count!=0, @"zero count");
-    UICollectionViewFlowLayout *layout = [UICollectionViewFlowLayout new];
-    layout.itemSize=CGSizeMake(310/count,310/count);
-    layout.minimumInteritemSpacing=1.0;
-    layout.minimumLineSpacing=1.0;
-    return layout;
-}
 
 #pragma mark - UICollectionViewDatasource
 -(NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView
@@ -176,11 +179,24 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
 }
 -(NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
-    return 10;
+    return 100;
 }
 -(UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    return [collectionView dequeueReusableCellWithReuseIdentifier:@"cell"
-                                                     forIndexPath:indexPath];
+    UICollectionViewCell *cell =  [collectionView dequeueReusableCellWithReuseIdentifier:@"cell"
+                                                                            forIndexPath:indexPath];
+    NSUInteger color = indexPath.row % 3;
+    switch (color) {
+        case 0:
+            cell.backgroundColor=[UIColor redColor];
+            break;
+        case 1:
+            cell.backgroundColor=[UIColor greenColor];
+            break;
+        default:
+            cell.backgroundColor=[UIColor blueColor];
+            break;
+    }
+    return cell;
 }
 @end

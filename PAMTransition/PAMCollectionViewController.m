@@ -46,7 +46,7 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
 @interface PAMCollectionViewController ()
 @property(nonatomic,readonly)UICollectionViewTransitionLayout *transitionLayout;
 @property(nonatomic)NSUInteger currentHoraizontalItemCount;
-@property(nonatomic)PAMPinchGestureZoomStatus zoomingStatus;
+@property(nonatomic)PAMPinchGestureZoomStatus zoomingStatus; // スクロールする方向を覚えておかないと、１つのジェスチャーで拡大→縮小を繰り返すとおかしな挙動になる。
 @property(nonatomic)UIPinchGestureRecognizer *pinchGesture;
 @end
 
@@ -78,40 +78,34 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
     // Dispose of any resources that can be recreated.
 }
 
+#define kPAMProgressThreshold 0.5
 -(void)pinchAction:(UIPinchGestureRecognizer *)gesture
 {
     switch(gesture.state){
         case UIGestureRecognizerStateBegan:
+        {
             NSLog(@"begin scale=%f",gesture.scale);
+            self.zoomingStatus = gesture.pam_zoomStatus;
+            NSUInteger nextCellCount = [self nextHoraizontalItemCount];
+            UICollectionViewLayout *nextLayout=[self layoutWithHorizontalCount:nextCellCount];
+            [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
+                                                                       completion:^(BOOL completed, BOOL finish) {
+                                                                           NSLog( @"completion");
+                                                                           [self enableGesture];
+                                                                       }];
+        }
             break;
-            
         case UIGestureRecognizerStateChanged:
-            if( self.transitionLayout == nil ){
-//            if ([self isInteractiveTransitioning]){
-                // まだTransitionが開始されていない
-                self.zoomingStatus = gesture.pam_zoomStatus;
-                NSUInteger nextCellCount = [self nextHoraizontalItemCountWithZoomStatus:self.zoomingStatus];
-                UICollectionViewLayout *nextLayout=[self layoutWithHorizontalCount:nextCellCount];
-                
-                [self.collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout
-                                                                           completion:^(BOOL completed, BOOL finish) {
-                                                                               NSLog( @"completion");
-                                                                               [self enableGesture];
-                                                                           }];
-            }
             self.transitionLayout.transitionProgress = [gesture pam_transitionProgressWithZoomStatus:self.zoomingStatus];
             NSLog( @"transitionProgress=%f",self.transitionLayout.transitionProgress);
             break;
         case UIGestureRecognizerStateEnded:
-            if( self.transitionLayout != nil ){
-//            if ([self isInteractiveTransitioning]){
-                [self disableGesture];
-                if( self.transitionLayout.transitionProgress > 0.5 ){
-                    [self.collectionView finishInteractiveTransition];
-                    self.currentHoraizontalItemCount = [self nextHoraizontalItemCountWithZoomStatus:self.zoomingStatus];
-                }else{
-                    [self.collectionView cancelInteractiveTransition];
-                }
+            [self disableGesture];
+            if( self.transitionLayout.transitionProgress > kPAMProgressThreshold ){
+                [self.collectionView finishInteractiveTransition];
+                self.currentHoraizontalItemCount = [self nextHoraizontalItemCount];
+            }else{
+                [self.collectionView cancelInteractiveTransition];
             }
             break;
         default:
@@ -120,12 +114,13 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
 }
 
 #pragma mark - util.
--(NSUInteger)nextHoraizontalItemCountWithZoomStatus:(PAMPinchGestureZoomStatus)zoomStatus
+-(NSUInteger)nextHoraizontalItemCount
 {
     NSUInteger nextHoraizontalItemCount;
     switch (self.zoomingStatus) {
         case PAMPinchGestureZoomStatusZoomIn:
             nextHoraizontalItemCount = self.currentHoraizontalItemCount-1;
+            nextHoraizontalItemCount = nextHoraizontalItemCount==0 ? 1 : nextHoraizontalItemCount;
             break;
         case PAMPinchGestureZoomStatusZoomOut:
             nextHoraizontalItemCount = self.currentHoraizontalItemCount+1;
@@ -161,9 +156,7 @@ typedef enum PAMPinchGestureZoomStatus:NSUInteger{
 }
 -(UICollectionViewLayout *)layoutWithHorizontalCount:(NSUInteger) count
 {
-    if( count == 0 ){
-        count=1;
-    }
+    NSAssert(count!=0, @"zero count");
     UICollectionViewFlowLayout *layout = [UICollectionViewFlowLayout new];
     layout.itemSize=CGSizeMake(310/count,310/count);
     layout.minimumInteritemSpacing=1.0;

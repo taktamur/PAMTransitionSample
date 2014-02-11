@@ -14,13 +14,13 @@
 		3B4613FF18A9BB5F00758AA9 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B4613FE18A9BB5F00758AA9 /* main.m */; };
 		3B46140318A9BB5F00758AA9 /* PAMAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B46140218A9BB5F00758AA9 /* PAMAppDelegate.m */; };
 		3B46140618A9BB5F00758AA9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46140418A9BB5F00758AA9 /* Main.storyboard */; };
-		3B46140918A9BB5F00758AA9 /* PAMViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B46140818A9BB5F00758AA9 /* PAMViewController.m */; };
 		3B46140B18A9BB5F00758AA9 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B46140A18A9BB5F00758AA9 /* Images.xcassets */; };
 		3B46141218A9BB5F00758AA9 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B46141118A9BB5F00758AA9 /* XCTest.framework */; };
 		3B46141318A9BB5F00758AA9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4613F218A9BB5F00758AA9 /* Foundation.framework */; };
 		3B46141418A9BB5F00758AA9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4613F618A9BB5F00758AA9 /* UIKit.framework */; };
 		3B46141C18A9BB5F00758AA9 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3B46141A18A9BB5F00758AA9 /* InfoPlist.strings */; };
 		3B46141E18A9BB5F00758AA9 /* PAMTransitionTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B46141D18A9BB5F00758AA9 /* PAMTransitionTests.m */; };
+		3B46142918A9BBCE00758AA9 /* PAMCollectionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B46142818A9BBCE00758AA9 /* PAMCollectionViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,14 +45,14 @@
 		3B46140118A9BB5F00758AA9 /* PAMAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PAMAppDelegate.h; sourceTree = "<group>"; };
 		3B46140218A9BB5F00758AA9 /* PAMAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PAMAppDelegate.m; sourceTree = "<group>"; };
 		3B46140518A9BB5F00758AA9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		3B46140718A9BB5F00758AA9 /* PAMViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PAMViewController.h; sourceTree = "<group>"; };
-		3B46140818A9BB5F00758AA9 /* PAMViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PAMViewController.m; sourceTree = "<group>"; };
 		3B46140A18A9BB5F00758AA9 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		3B46141018A9BB5F00758AA9 /* PAMTransitionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PAMTransitionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B46141118A9BB5F00758AA9 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		3B46141918A9BB5F00758AA9 /* PAMTransitionTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "PAMTransitionTests-Info.plist"; sourceTree = "<group>"; };
 		3B46141B18A9BB5F00758AA9 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		3B46141D18A9BB5F00758AA9 /* PAMTransitionTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PAMTransitionTests.m; sourceTree = "<group>"; };
+		3B46142718A9BBCE00758AA9 /* PAMCollectionViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PAMCollectionViewController.h; sourceTree = "<group>"; };
+		3B46142818A9BBCE00758AA9 /* PAMCollectionViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PAMCollectionViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,10 +115,10 @@
 				3B46140118A9BB5F00758AA9 /* PAMAppDelegate.h */,
 				3B46140218A9BB5F00758AA9 /* PAMAppDelegate.m */,
 				3B46140418A9BB5F00758AA9 /* Main.storyboard */,
-				3B46140718A9BB5F00758AA9 /* PAMViewController.h */,
-				3B46140818A9BB5F00758AA9 /* PAMViewController.m */,
 				3B46140A18A9BB5F00758AA9 /* Images.xcassets */,
 				3B4613F918A9BB5F00758AA9 /* Supporting Files */,
+				3B46142718A9BBCE00758AA9 /* PAMCollectionViewController.h */,
+				3B46142818A9BBCE00758AA9 /* PAMCollectionViewController.m */,
 			);
 			path = PAMTransition;
 			sourceTree = "<group>";
@@ -251,8 +251,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				3B4613FF18A9BB5F00758AA9 /* main.m in Sources */,
-				3B46140918A9BB5F00758AA9 /* PAMViewController.m in Sources */,
 				3B46140318A9BB5F00758AA9 /* PAMAppDelegate.m in Sources */,
+				3B46142918A9BBCE00758AA9 /* PAMCollectionViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

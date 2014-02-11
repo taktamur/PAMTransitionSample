@@ -1,5 +1,5 @@
 //
-//  PAMViewController.h
+//  PAMCollectionViewController.h
 //  PAMTransition
 //
 //  Created by tak on 2014/02/11.
@@ -8,6 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-@interface PAMViewController : UIViewController
+@interface PAMCollectionViewController : UICollectionViewController<UICollectionViewDataSource>
 
 @end
